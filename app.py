@@ -4,7 +4,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Editing git and local!"
+    return "Check branch!"
 
 if __name__ == "__main__":
     app.run(debug=True)
