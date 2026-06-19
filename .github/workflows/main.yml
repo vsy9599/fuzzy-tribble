@@ -1,69 +1,43 @@
-trigger:
-- main
+name: React CI/CD
 
-pr:
-- main
+on:
+  push:
+    branches:
+      - main
 
-pool:
-  vmImage: 'ubuntu-latest'
+  pull_request:
+    branches:
+      - main
 
-variables:
-  NodeVersion: '20.x'
-  BuildFolder: 'build'
-  TargetFolder: '/var/www/html'
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-steps:
+    strategy:
+      matrix:
+        node-version: [20.x]
 
-# Checkout source code
-- checkout: self
-  displayName: 'Checkout Source Code'
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
 
-# Install Node.js
-- task: NodeTool@0
-  displayName: 'Install Node.js'
-  inputs:
-    versionSpec: '$(NodeVersion)'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
 
-# Install dependencies
-- script: |
-    npm install
-  displayName: 'Install Dependencies'
+      - name: Install Dependencies
+        run: npm install
 
-# Run tests (optional)
-- script: |
-    npm test -- --watchAll=false
-  displayName: 'Run Unit Tests'
-  continueOnError: true
+      - name: Run Tests
+        run: npm test -- --watchAll=false
+        continue-on-error: true
 
-# Build React application
-- script: |
-    npm run build
-  displayName: 'Build React Application'
+      - name: Build React App
+        run: npm run build
 
-# Publish build artifacts
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Build Artifact'
-  inputs:
-    PathtoPublish: '$(Build.SourcesDirectory)/$(BuildFolder)'
-    ArtifactName: 'react-build'
-
-# Copy build files to AWS Lightsail
-- task: CopyFilesOverSSH@0
-  displayName: 'Deploy to AWS Lightsail'
-  inputs:
-    sshEndpoint: 'LightsailSSH'
-    sourceFolder: '$(Build.SourcesDirectory)/$(BuildFolder)'
-    contents: '**'
-    targetFolder: '$(TargetFolder)'
-    cleanTargetFolder: true
-    overwrite: true
-
-# Restart Nginx
-- task: SSH@0
-  displayName: 'Restart Nginx'
-  inputs:
-    sshEndpoint: 'LightsailSSH'
-    runOptions: 'inline'
-    inline: |
-      sudo systemctl restart nginx
-      sudo systemctl status nginx --no-pager
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-build
+          path: build/
