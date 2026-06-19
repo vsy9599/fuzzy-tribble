@@ -1,4 +1,4 @@
-name: React CI-CD to AWS Lightsail
+name: Dummy CI-CD
 
 on:
   push:
@@ -7,50 +7,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  ci-cd:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout source code
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # Install Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Print Hello
+        run: echo "Hello GitHub Actions!"
 
-      # Install dependencies
-      - name: Install Dependencies
-        run: npm install
+      - name: Show Date
+        run: date
 
-      # Run tests (optional)
-      - name: Run Tests
-        run: npm test -- --watchAll=false
-        continue-on-error: true
+      - name: Show Current Directory
+        run: pwd
 
-      # Build the React application
-      - name: Build Application
-        run: npm run build
+      - name: List Files
+        run: ls -R
 
-      # Copy build files to AWS Lightsail
-      - name: Deploy to Lightsail
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ${{ secrets.LIGHTSAIL_USERNAME }}
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          source: "build/*"
-          target: "/var/www/html"
-
-      # Restart Nginx
-      - name: Restart Nginx
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.LIGHTSAIL_HOST }}
-          username: ${{ secrets.LIGHTSAIL_USERNAME }}
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
-          script: |
-            sudo systemctl restart nginx
-            sudo systemctl status nginx --no-pager
+      - name: Success
+        run: echo "Workflow completed successfully!"
