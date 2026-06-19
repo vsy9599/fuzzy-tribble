@@ -1,0 +1,34 @@
+name: Dummy CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  dummy-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Print Welcome Message
+        run: echo "🚀 GitHub Actions is working successfully!"
+
+      - name: Display Current Date
+        run: date
+
+      - name: List Repository Files
+        run: ls -la
+
+      - name: Create a Dummy File
+        run: |
+          echo "This is a test file created by GitHub Actions." > dummy.txt
+          cat dummy.txt
+
+      - name: Finish Pipeline
+        run: echo "✅ Dummy CI Pipeline completed successfully!"
