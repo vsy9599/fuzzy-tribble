@@ -1,34 +1,69 @@
-name: Dummy CI Pipeline
+trigger:
+- main
 
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+pr:
+- main
 
-jobs:
-  dummy-build:
-    runs-on: ubuntu-latest
+pool:
+  vmImage: 'ubuntu-latest'
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+variables:
+  NodeVersion: '20.x'
+  BuildFolder: 'build'
+  TargetFolder: '/var/www/html'
 
-      - name: Print Welcome Message
-        run: echo "🚀 GitHub Actions is working successfully!"
+steps:
 
-      - name: Display Current Date
-        run: date
+# Checkout source code
+- checkout: self
+  displayName: 'Checkout Source Code'
 
-      - name: List Repository Files
-        run: ls -la
+# Install Node.js
+- task: NodeTool@0
+  displayName: 'Install Node.js'
+  inputs:
+    versionSpec: '$(NodeVersion)'
 
-      - name: Create a Dummy File
-        run: |
-          echo "This is a test file created by GitHub Actions." > dummy.txt
-          cat dummy.txt
+# Install dependencies
+- script: |
+    npm install
+  displayName: 'Install Dependencies'
 
-      - name: Finish Pipeline
-        run: echo "✅ Dummy CI Pipeline completed successfully!"
+# Run tests (optional)
+- script: |
+    npm test -- --watchAll=false
+  displayName: 'Run Unit Tests'
+  continueOnError: true
+
+# Build React application
+- script: |
+    npm run build
+  displayName: 'Build React Application'
+
+# Publish build artifacts
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Build Artifact'
+  inputs:
+    PathtoPublish: '$(Build.SourcesDirectory)/$(BuildFolder)'
+    ArtifactName: 'react-build'
+
+# Copy build files to AWS Lightsail
+- task: CopyFilesOverSSH@0
+  displayName: 'Deploy to AWS Lightsail'
+  inputs:
+    sshEndpoint: 'LightsailSSH'
+    sourceFolder: '$(Build.SourcesDirectory)/$(BuildFolder)'
+    contents: '**'
+    targetFolder: '$(TargetFolder)'
+    cleanTargetFolder: true
+    overwrite: true
+
+# Restart Nginx
+- task: SSH@0
+  displayName: 'Restart Nginx'
+  inputs:
+    sshEndpoint: 'LightsailSSH'
+    runOptions: 'inline'
+    inline: |
+      sudo systemctl restart nginx
+      sudo systemctl status nginx --no-pager
